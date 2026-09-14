@@ -1,0 +1,133 @@
+-- 创建数据库
+CREATE DATABASE IF NOT EXISTS crm_saas DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE crm_saas;
+
+-- 1. 商户表
+DROP TABLE IF EXISTS shop_merchant;
+CREATE TABLE shop_merchant (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    merchant_name VARCHAR(100) COMMENT '商户名称',
+    user_id BIGINT COMMENT '所属用户ID',
+    contact_name VARCHAR(50) COMMENT '联系人',
+    contact_phone VARCHAR(20) COMMENT '联系电话',
+    address VARCHAR(255) COMMENT '地址',
+    business_hours VARCHAR(50) COMMENT '联系人',
+    expire_time DATETIME COMMENT '到期时间',
+    status TINYINT DEFAULT 1 COMMENT '1正常 0禁用',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) COMMENT='商户信息表';
+
+-- 2. 系统用户表
+DROP TABLE IF EXISTS sys_user;
+CREATE TABLE sys_user (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    merchant_id BIGINT COMMENT '所属商户ID',
+    username VARCHAR(50) NOT NULL COMMENT '登录账号',
+    password VARCHAR(100) NOT NULL COMMENT '密码',
+    real_name VARCHAR(50) COMMENT '真实姓名',
+    phone VARCHAR(20) COMMENT '手机号',
+    role_type TINYINT DEFAULT 2 COMMENT '1管理员 2员工',
+    status TINYINT DEFAULT 1 COMMENT '1正常 0禁用',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP
+) COMMENT='系统用户';
+
+-- 3. 客户分类表
+DROP TABLE IF EXISTS crm_customer_type;
+CREATE TABLE crm_customer_type (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    merchant_id BIGINT COMMENT '商户ID',
+    type_name VARCHAR(50) COMMENT '分类名称',
+    sort_num INT DEFAULT 0 COMMENT '排序',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP
+) COMMENT='客户分类';
+
+-- 4. 客户表
+DROP TABLE IF EXISTS crm_customer;
+CREATE TABLE crm_customer (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    merchant_id BIGINT COMMENT '商户ID',
+    user_id BIGINT COMMENT '负责员工ID',
+    type_id INT COMMENT '分类ID',
+    customer_name VARCHAR(50) COMMENT '客户姓名',
+    phone VARCHAR(20) COMMENT '联系电话',
+    wechat VARCHAR(50) COMMENT '微信号',
+    customer_source VARCHAR(20) COMMENT '客源',
+    customer_label VARCHAR(20) COMMENT '等级',
+    address VARCHAR(255) COMMENT '地址',
+    remark VARCHAR(500) COMMENT '备注',
+    next_follow_time DATETIME COMMENT '下次回访时间',
+    status TINYINT DEFAULT 1,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP
+) COMMENT='客户信息';
+
+-- 5. 跟进记录表
+DROP TABLE IF EXISTS crm_follow_record;
+CREATE TABLE crm_follow_record (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    merchant_id BIGINT COMMENT '商户ID',
+    customer_id BIGINT COMMENT '客户ID',
+    user_id BIGINT COMMENT '操作人',
+    follow_content VARCHAR(500) COMMENT '跟进内容',
+    del_flag TINYINT DEFAULT 1 COMMENT '1正常 0 已删除',
+    next_follow_time DATETIME COMMENT '下次跟进时间',
+    follow_time DATETIME COMMENT '跟进时间',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP
+) COMMENT='跟进记录';
+
+-- 6. 订单表
+DROP TABLE IF EXISTS crm_order;
+CREATE TABLE crm_order (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    merchant_id BIGINT COMMENT '商户ID',
+    order_no VARCHAR(32) COMMENT '订单编号',
+    customer_id BIGINT COMMENT '客户ID',
+    user_id BIGINT COMMENT '开单人',
+    order_amount DECIMAL(10,2) DEFAULT 0 COMMENT '订单金额',
+    pay_status TINYINT DEFAULT 0 COMMENT '0未付款 1已付款',
+    del_flag TINYINT DEFAULT 1 COMMENT '1正常 0 已删除',
+    order_time DATETIME COMMENT '下单时间',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP
+) COMMENT='客户订单';
+ALTER TABLE crm_order
+ADD COLUMN goods_name VARCHAR(255) DEFAULT '' COMMENT '商品名称',
+ADD COLUMN goods_num INT DEFAULT 1 COMMENT '商品数量',
+ADD COLUMN goods_price DECIMAL(10,2) DEFAULT 0.00 COMMENT '商品单价';
+
+ALTER TABLE crm_order
+ADD COLUMN customer_name VARCHAR(255) DEFAULT '' COMMENT '客户名称';
+-- 初始化测试数据
+-- 插入商户
+INSERT INTO shop_merchant(merchant_name,contact_name,contact_phone,expire_time)
+VALUES('测试商户','老板','13800138000','2099-12-31 23:59:59');
+
+-- 插入管理员账号 账号:admin 密码:123456
+INSERT INTO sys_user(merchant_id,username,password,real_name,role_type)
+VALUES(1,'admin','123456','超级管理员',1);
+
+-- 默认客户分类
+INSERT INTO crm_customer_type(merchant_id,type_name)
+VALUES(1,'潜在客户'),(1,'意向客户'),(1,'成交客户'),(1,'流失客户');
+DROP TABLE IF EXISTS crm_goods;
+CREATE TABLE `crm_goods` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `merchant_id` bigint DEFAULT NULL COMMENT '商铺ID',
+  `goods_name` varchar(100) NOT NULL COMMENT '商品名称',
+  `price` decimal(10,2) DEFAULT '0.00' COMMENT '单价',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP,
+  `del_flag` int DEFAULT 1,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商品表';
+
+DROP TABLE IF EXISTS crm_order_goods;
+CREATE TABLE `crm_order_goods` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `merchant_id` bigint DEFAULT NULL COMMENT '商铺ID',
+  `order_id` bigint NOT NULL COMMENT '订单ID',
+  `goods_id` bigint DEFAULT NULL COMMENT '商品ID',
+  `goods_name` varchar(100) DEFAULT '' COMMENT '商品名称',
+  `price` decimal(10,2) DEFAULT '0.00' COMMENT '单价',
+  `num` int DEFAULT 1 COMMENT '数量',
+  `total_price` decimal(10,2) DEFAULT '0.00' COMMENT '小计',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单商品明细表';

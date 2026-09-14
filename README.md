@@ -1,3 +1,4 @@
+![客户列表页面](./docs/gongneng.png)
 # Simple CRM 简易客户管理系统
 > 个人练习Demo，用于演示后端基础业务开发，非商用项目
 
